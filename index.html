@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Last Corridor - 3D Horror</title>
+    <title>The Last Corridor - Open World Horror</title>
     <style>
         body {
             margin: 0;
@@ -11,6 +11,7 @@
             background-color: #000;
             touch-action: none;
             font-family: monospace;
+            user-select: none;
         }
         #ui {
             position: absolute;
@@ -21,30 +22,6 @@
             text-shadow: 2px 2px 4px #000;
             z-index: 10;
         }
-        /* On-screen Action Buttons */
-        .game-btn {
-            position: absolute;
-            bottom: 30px;
-            background: rgba(255, 255, 255, 0.15);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            font-size: 18px;
-            padding: 15px 25px;
-            border-radius: 50px;
-            backdrop-filter: blur(5px);
-            user-select: none;
-            z-index: 10;
-            text-align: center;
-        }
-        #walk-btn {
-            left: 30px;
-        }
-        #pick-btn {
-            right: 30px;
-            background: rgba(255, 85, 85, 0.3);
-            border-color: rgba(255, 85, 85, 0.6);
-            display: none; /* Sirf tab dikhega jab key ke paas honge */
-        }
         #controls-hint {
             position: absolute;
             top: 60px;
@@ -53,14 +30,58 @@
             font-size: 12px;
             z-index: 10;
         }
+        /* Virtual Joystick CSS */
+        #joystick-base {
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            z-index: 10;
+            touch-action: none;
+        }
+        #joystick-stick {
+            position: absolute;
+            top: 35px;
+            left: 35px;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        /* Pick Button CSS */
+        #pick-btn {
+            position: absolute;
+            bottom: 50px;
+            right: 40px;
+            background: rgba(255, 85, 85, 0.3);
+            border: 2px solid rgba(255, 85, 85, 0.6);
+            color: white;
+            font-size: 16px;
+            padding: 15px 25px;
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
+            z-index: 10;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div id="ui">Keys Found: 0 / 3</div>
-    <div id="controls-hint">Swipe screen to look around</div>
+    <div id="controls-hint">Explore the open dark hall & find keys</div>
 
-    <div id="walk-btn" class="game-btn">🚶‍♂️ HOLD TO WALK</div>
-    <div id="pick-btn" class="game-btn">🔑 PICK KEY</div>
+    <!-- Virtual Joystick -->
+    <div id="joystick-base">
+        <div id="joystick-stick"></div>
+    </div>
+
+    <!-- Pick Button -->
+    <div id="pick-btn">🔑 PICK KEY</div>
 
     <!-- Three.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -76,103 +97,170 @@
         document.body.appendChild(renderer.domElement);
 
         // 2. Lighting & Flashlight
-        const ambientLight = new THREE.AmbientLight(0x080808);
+        const ambientLight = new THREE.AmbientLight(0x060606);
         scene.add(ambientLight);
 
-        const flashlight = new THREE.SpotLight(0xffffff, 6, 25, Math.PI / 5, 0.4, 2);
+        const flashlight = new THREE.SpotLight(0xffffff, 6, 30, Math.PI / 4, 0.4, 2);
         camera.add(flashlight);
         flashlight.position.set(0, 0, 0);
         flashlight.target.position.set(0, 0, -5);
         camera.add(flashlight.target);
         scene.add(camera);
 
-        // 3. Corridor Building
-        const corridorLength = 60;
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
+        // 3. Open World Room Building (Bada Hall: 40x40 size)
+        const roomSize = 40;
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.9 });
         
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(8, corridorLength), floorMat);
+        // Floor
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), floorMat);
         floor.rotation.x = -Math.PI / 2;
-        floor.position.set(0, 0, -corridorLength / 2 + 10);
         scene.add(floor);
 
-        const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(8, corridorLength), floorMat);
+        // Ceiling
+        const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), floorMat);
         ceiling.rotation.x = Math.PI / 2;
-        ceiling.position.set(0, 4, -corridorLength / 2 + 10);
+        ceiling.position.y = 5;
         scene.add(ceiling);
 
-        const wallMat = new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 0.8 });
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.8 });
         
-        const leftWall = new THREE.Mesh(new THREE.BoxGeometry(1, 4, corridorLength), wallMat);
-        leftWall.position.set(-4, 2, -corridorLength / 2 + 10);
-        scene.add(leftWall);
+        // Outer Boundaries (4 Walls)
+        const wallHalf = roomSize / 2;
+        
+        // North Wall
+        const northWall = new THREE.Mesh(new THREE.BoxGeometry(roomSize, 5, 1), wallMat);
+        northWall.position.set(0, 2.5, -wallHalf);
+        scene.add(northWall);
 
-        const rightWall = new THREE.Mesh(new THREE.BoxGeometry(1, 4, corridorLength), wallMat);
-        rightWall.position.set(4, 2, -corridorLength / 2 + 10);
-        scene.add(rightWall);
+        // South Wall
+        const southWall = new THREE.Mesh(new THREE.BoxGeometry(roomSize, 5, 1), wallMat);
+        southWall.position.set(0, 2.5, wallHalf);
+        scene.add(southWall);
 
-        camera.position.set(0, 1.6, 10);
+        // West Wall
+        const westWall = new THREE.Mesh(new THREE.BoxGeometry(1, 5, roomSize), wallMat);
+        westWall.position.set(-wallHalf, 2.5, 0);
+        scene.add(westWall);
 
-        // 4. Place 3 Keys inside the Corridor (Glowing spheres representing keys)
+        // East Wall
+        const eastWall = new THREE.Mesh(new THREE.BoxGeometry(1, 5, roomSize), wallMat);
+        eastWall.position.set(wallHalf, 2.5, 0);
+        scene.add(eastWall);
+
+        // Kuch beech mein pillars ya obstacles (Open world feel ke liye)
+        const pillarMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.7 });
+        const pillarGeo = new THREE.BoxGeometry(2, 5, 2);
+        
+        const p1 = new THREE.Mesh(pillarGeo, pillarMat); p1.position.set(-8, 2.5, -8); scene.add(p1);
+        const p2 = new THREE.Mesh(pillarGeo, pillarMat); p2.position.set(8, 2.5, -8); scene.add(p2);
+        const p3 = new THREE.Mesh(pillarGeo, pillarMat); p3.position.set(-8, 2.5, 8); scene.add(p3);
+        const p4 = new THREE.Mesh(pillarGeo, pillarMat); p4.position.set(8, 2.5, 8); scene.add(p4);
+
+        // Start position inside the big room
+        camera.position.set(0, 1.6, 15);
+
+        // 4. Place 3 Keys scattered around the Open Room
         const keys = [];
         const keyPositions = [
-            { x: -2, z: -5 },
-            { x: 2, z: -20 },
-            { x: 0, z: -40 }
+            { x: -12, z: -12 },
+            { x: 12, z: -5 },
+            { x: 0, z: 12 }
         ];
 
-        const keyGeo = new THREE.SphereGeometry(0.3, 16, 16);
+        const keyGeo = new THREE.SphereGeometry(0.4, 16, 16);
         const keyMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
 
-        keyPositions.forEach((pos, index) => {
+        keyPositions.forEach((pos) => {
             const keyMesh = new THREE.Mesh(keyGeo, keyMat);
             keyMesh.position.set(pos.x, 1, pos.z);
             scene.add(keyMesh);
             keys.push({ mesh: keyMesh, collected: false });
         });
 
-        // 5. Touch & Swipe Look Controls (Only on empty screen space)
-        let isTouching = false;
-        let prevTouchX = 0;
-        let prevTouchY = 0;
-        let cameraRotationY = 0;
-        let cameraRotationX = 0;
+        // 5. Swipe Camera Controls (Right side of screen)
+        let isSwiping = false;
+        let prevTouchX = 0, prevTouchY = 0;
+        let cameraRotationY = 0, cameraRotationX = 0;
 
         window.addEventListener('touchstart', (e) => {
-            // Agar button touch nahi kiya, tabhi camera swipe hoga
-            if(e.target.tagName === 'BODY' || e.target.id === 'controls-hint') {
-                isTouching = true;
-                prevTouchX = e.touches[0].clientX;
-                prevTouchY = e.touches[0].clientY;
+            for (let i = 0; i < e.touches.length; i++) {
+                if (e.touches[i].clientX > window.innerWidth / 2) {
+                    isSwiping = true;
+                    prevTouchX = e.touches[i].clientX;
+                    prevTouchY = e.touches[i].clientY;
+                }
             }
         });
 
         window.addEventListener('touchmove', (e) => {
-            if (!isTouching) return;
-            const currentX = e.touches[0].clientX;
-            const currentY = e.touches[0].clientY;
+            if (!isSwiping) return;
+            for (let i = 0; i < e.touches.length; i++) {
+                if (e.touches[i].clientX > window.innerWidth / 2) {
+                    const deltaX = e.touches[i].clientX - prevTouchX;
+                    const deltaY = e.touches[i].clientY - prevTouchY;
 
-            const deltaX = currentX - prevTouchX;
-            const deltaY = currentY - prevTouchY;
+                    cameraRotationY -= deltaX * 0.005;
+                    cameraRotationX -= deltaY * 0.005;
+                    cameraRotationX = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, cameraRotationX));
 
-            cameraRotationY -= deltaX * 0.005;
-            cameraRotationX -= deltaY * 0.005;
-            cameraRotationX = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, cameraRotationX));
+                    camera.rotation.order = 'YXZ';
+                    camera.rotation.y = cameraRotationY;
+                    camera.rotation.x = cameraRotationX;
 
-            camera.rotation.order = 'YXZ';
-            camera.rotation.y = cameraRotationY;
-            camera.rotation.x = cameraRotationX;
-
-            prevTouchX = currentX;
-            prevTouchY = currentY;
+                    prevTouchX = e.touches[i].clientX;
+                    prevTouchY = e.touches[i].clientY;
+                }
+            }
         });
 
-        window.addEventListener('touchend', () => { isTouching = false; });
+        window.addEventListener('touchend', () => { isSwiping = false; });
 
-        // 6. Walk Button Logic
-        let isWalking = false;
-        const walkBtn = document.getElementById('walk-btn');
-        walkBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isWalking = true; });
-        walkBtn.addEventListener('touchend', (e) => { e.preventDefault(); isWalking = false; });
+        // 6. Virtual Joystick Movement Logic
+        const joystickBase = document.getElementById('joystick-base');
+        const joystickStick = document.getElementById('joystick-stick');
+        let joystickActive = false;
+        let moveVector = { x: 0, y: 0 };
+        let baseCenterX = 0, baseCenterY = 0;
+
+        joystickBase.addEventListener('touchstart', (e) => {
+            joystickActive = true;
+            const rect = joystickBase.getBoundingClientRect();
+            baseCenterX = rect.left + rect.width / 2;
+            baseCenterY = rect.top + rect.height / 2;
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!joystickActive) return;
+            let touch = null;
+            for (let i = 0; i < e.touches.length; i++) {
+                if (e.touches[i].clientX < window.innerWidth / 2) {
+                    touch = e.touches[i];
+                    break;
+                }
+            }
+            if (!touch) return;
+
+            let deltaX = touch.clientX - baseCenterX;
+            let deltaY = touch.clientY - baseCenterY;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            const maxRadius = 40;
+
+            if (distance > maxRadius) {
+                deltaX = (deltaX / distance) * maxRadius;
+                deltaY = (deltaY / distance) * maxRadius;
+            }
+
+            joystickStick.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+            moveVector.x = deltaX / maxRadius;
+            moveVector.y = deltaY / maxRadius;
+        });
+
+        window.addEventListener('touchend', () => {
+            joystickActive = false;
+            joystickStick.style.transform = `translate(0px, 0px)`;
+            moveVector.x = 0;
+            moveVector.y = 0;
+        });
 
         // 7. Pick Key Logic
         let keysFound = 0;
@@ -194,25 +282,34 @@
             }
         });
 
-        // 8. Game Loop
+        // 8. Game Loop with Boundary Limits
         function animate() {
             requestAnimationFrame(animate);
 
-            // Move forward when Walk button is held
-            if (isWalking) {
+            if (moveVector.y !== 0 || moveVector.x !== 0) {
                 const direction = new THREE.Vector3();
                 camera.getWorldDirection(direction);
                 direction.y = 0;
                 direction.normalize();
-                camera.position.addScaledVector(direction, 0.06);
+
+                const sideDirection = new THREE.Vector3(-direction.z, 0, direction.x);
+
+                const speed = 0.08;
+                camera.position.addScaledVector(direction, -moveVector.y * speed);
+                camera.position.addScaledVector(sideDirection, moveVector.x * speed);
+
+                // Open world boundary limits (room ke andar hi rahega player)
+                const limit = 18;
+                camera.position.x = Math.max(-limit, Math.min(limit, camera.position.x));
+                camera.position.z = Math.max(-limit, Math.min(limit, camera.position.z));
             }
 
-            // Check distance to keys for pickup
+            // Check distance to keys
             currentNearbyKey = null;
             keys.forEach(k => {
                 if (!k.collected) {
                     const distance = camera.position.distanceTo(k.mesh.position);
-                    if (distance < 2.5) { // Agar 2.5 meter ke paas hai toh key uthane ka button dikhega
+                    if (distance < 3) {
                         currentNearbyKey = k;
                     }
                 }
