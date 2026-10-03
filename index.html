@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Last Corridor - 3D Horror</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            touch-action: none;
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #ff5555;
+            font-family: monospace;
+            font-size: 20px;
+            text-shadow: 2px 2px 4px #000;
+            z-index: 10;
+        }
+        #controls-hint {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: #888;
+            font-family: monospace;
+            font-size: 14px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">Keys Found: 0 / 3</div>
+    <div id="controls-hint">Swipe screen to look around | Tap & hold to move forward</div>
+
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script>
+        // 1. Scene, Camera, Renderer Setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x020202);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // 2. Lighting & Flashlight
+        const ambientLight = new THREE.AmbientLight(0x080808);
+        scene.add(ambientLight);
+
+        const flashlight = new THREE.SpotLight(0xffffff, 6, 25, Math.PI / 5, 0.4, 2);
+        camera.add(flashlight);
+        flashlight.position.set(0, 0, 0);
+        flashlight.target.position.set(0, 0, -5);
+        camera.add(flashlight.target);
+        scene.add(camera);
+
+        // 3. Corridor Building (Floor, Ceiling, Walls)
+        const corridorLength = 60;
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
+        
+        // Floor
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(8, corridorLength), floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.set(0, 0, -corridorLength / 2 + 10);
+        scene.add(floor);
+
+        // Ceiling
+        const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(8, corridorLength), floorMat);
+        ceiling.rotation.x = Math.PI / 2;
+        ceiling.position.set(0, 4, -corridorLength / 2 + 10);
+        scene.add(ceiling);
+
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 0.8 });
+        
+        // Left Wall
+        const leftWall = new THREE.Mesh(new THREE.BoxGeometry(1, 4, corridorLength), wallMat);
+        leftWall.position.set(-4, 2, -corridorLength / 2 + 10);
+        scene.add(leftWall);
+
+        // Right Wall
+        const rightWall = new THREE.Mesh(new THREE.BoxGeometry(1, 4, corridorLength), wallMat);
+        rightWall.position.set(4, 2, -corridorLength / 2 + 10);
+        scene.add(rightWall);
+
+        // Initial Camera Position inside corridor
+        camera.position.set(0, 1.6, 10);
+
+        // 4. Touch & Swipe Controls for Mobile
+        let isTouching = false;
+        let prevTouchX = 0;
+        let prevTouchY = 0;
+        let cameraRotationY = 0;
+        let cameraRotationX = 0;
+
+        window.addEventListener('touchstart', (e) => {
+            isTouching = true;
+            prevTouchX = e.touches[0].clientX;
+            prevTouchY = e.touches[0].clientY;
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!isTouching) return;
+
+            const currentX = e.touches[0].clientX;
+            const currentY = e.touches[0].clientY;
+
+            const deltaX = currentX - prevTouchX;
+            const deltaY = currentY - prevTouchY;
+
+            cameraRotationY -= deltaX * 0.005;
+            cameraRotationX -= deltaY * 0.005;
+
+            // Limit vertical look angle so player doesn't flip over
+            cameraRotationX = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, cameraRotationX));
+
+            camera.rotation.order = 'YXZ';
+            camera.rotation.y = cameraRotationY;
+            camera.rotation.x = cameraRotationX;
+
+            prevTouchX = currentX;
+            prevTouchY = currentY;
+        });
+
+        window.addEventListener('touchend', () => {
+            isTouching = false;
+        });
+
+        // Tap and hold anywhere to move forward in the direction you are looking
+        let isMovingForward = false;
+        window.addEventListener('touchstart', (e) => {
+            // Double touch or multi-touch can be used to move, or single tap hold
+            if(e.touches.length > 1) {
+                isMovingForward = true;
+            }
+        });
+        window.addEventListener('touchend', () => {
+            isMovingForward = false;
+        });
+
+        // 5. Game Loop
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Move forward if two fingers are held on screen
+            if (isMovingForward) {
+                const direction = new THREE.Vector3();
+                camera.getWorldDirection(direction);
+                direction.y = 0; // Keep movement flat on ground
+                direction.normalize();
+                camera.position.addScaledVector(direction, 0.05);
+            }
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Screen Resize Handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
