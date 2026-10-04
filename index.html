@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Last Corridor - Monster & Run</title>
+    <title>The Last Corridor - Fixed Controls</title>
     <style>
         body {
             margin: 0;
@@ -37,8 +37,8 @@
             left: 40px;
             width: 120px;
             height: 120px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.4);
             border-radius: 50%;
             z-index: 10;
             touch-action: none;
@@ -49,12 +49,12 @@
             left: 35px;
             width: 50px;
             height: 50px;
-            background: rgba(255, 255, 255, 0.3);
-            border: 2px solid rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.6);
             border-radius: 50%;
             pointer-events: none;
         }
-        /* Action Buttons (Run & Pick) */
+        /* Action Buttons */
         .action-btn {
             position: absolute;
             bottom: 50px;
@@ -82,7 +82,7 @@
 </head>
 <body>
     <div id="ui">Keys Found: 0 / 3</div>
-    <div id="controls-hint">Run from the monster & collect keys!</div>
+    <div id="controls-hint">Use left joystick to move, right screen to look!</div>
 
     <!-- Virtual Joystick -->
     <div id="joystick-base">
@@ -99,14 +99,14 @@
     <script>
         // 1. Scene, Camera, Renderer
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050505);
+        scene.background = new THREE.Color(0x010101);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // 2. Lighting & Flashlight (Ambient light thodi bright ki hai taaki poori black screen na aaye)
+        // 2. Lighting (Thodi roshni badha di hai taaki black screen na lage)
         const ambientLight = new THREE.AmbientLight(0x222222);
         scene.add(ambientLight);
 
@@ -119,7 +119,7 @@
 
         // 3. Open Room Environment
         const roomSize = 40;
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.9 });
         
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), floorMat);
         floor.rotation.x = -Math.PI / 2;
@@ -130,13 +130,22 @@
         ceiling.position.y = 5;
         scene.add(ceiling);
 
-        const wallMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.8 });
         const wallHalf = roomSize / 2;
         
         scene.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(roomSize, 5, 1), wallMat), { position: { x: 0, y: 2.5, z: -wallHalf } }));
         scene.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(roomSize, 5, 1), wallMat), { position: { x: 0, y: 2.5, z: wallHalf } }));
         scene.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(1, 5, roomSize), wallMat), { position: { x: -wallHalf, y: 2.5, z: 0 } }));
         scene.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(1, 5, roomSize), wallMat), { position: { x: wallHalf, y: 2.5, z: 0 } }));
+
+        // Pillars
+        const pillarMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.7 });
+        const pillarGeo = new THREE.BoxGeometry(2, 5, 2);
+        [[-8,-8], [8,-8], [-8,8], [8,8]].forEach(p => {
+            const mesh = new THREE.Mesh(pillarGeo, pillarMat);
+            mesh.position.set(p[0], 2.5, p[1]);
+            scene.add(mesh);
+        });
 
         camera.position.set(0, 1.6, 15);
 
@@ -155,43 +164,37 @@
 
         // 5. Monster Setup
         const monsterGroup = new THREE.Group();
-        const monsterBodyMat = new THREE.MeshStandardMaterial({ color: 0x1a0000, roughness: 0.5 });
-        const monsterBody = new THREE.Mesh(new THREE.BoxGeometry(1, 3.5, 1), monsterBodyMat);
+        const monsterBody = new THREE.Mesh(new THREE.BoxGeometry(1, 3.5, 1), new THREE.MeshStandardMaterial({ color: 0x1a0000 }));
         monsterBody.position.y = 1.75;
         monsterGroup.add(monsterBody);
-
         const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), eyeMat);
-        leftEye.position.set(-0.2, 3.1, -0.5);
-        const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), eyeMat);
-        rightEye.position.set(0.2, 3.1, -0.5);
-        monsterGroup.add(leftEye);
-        monsterGroup.add(rightEye);
-
+        const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), eyeMat); leftEye.position.set(-0.2, 3.1, -0.5);
+        const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), eyeMat); rightEye.position.set(0.2, 3.1, -0.5);
+        monsterGroup.add(leftEye); monsterGroup.add(rightEye);
         monsterGroup.position.set(0, 0, -15);
         scene.add(monsterGroup);
 
-        // 6. Swipe Camera Controls (Right side)
+        // 6. Swipe Camera Controls (Right side of screen)
         let isSwiping = false;
         let prevTouchX = 0, prevTouchY = 0;
         let cameraRotationY = 0, cameraRotationX = 0;
 
         window.addEventListener('touchstart', (e) => {
-            for (let i = 0; i < e.touches.length; i++) {
-                if (e.touches[i].clientX > window.innerWidth / 2) {
+            for (let t of e.touches) {
+                if (t.clientX > window.innerWidth / 2) {
                     isSwiping = true;
-                    prevTouchX = e.touches[i].clientX;
-                    prevTouchY = e.touches[i].clientY;
+                    prevTouchX = t.clientX;
+                    prevTouchY = t.clientY;
                 }
             }
         });
 
         window.addEventListener('touchmove', (e) => {
             if (!isSwiping) return;
-            for (let i = 0; i < e.touches.length; i++) {
-                if (e.touches[i].clientX > window.innerWidth / 2) {
-                    const deltaX = e.touches[i].clientX - prevTouchX;
-                    const deltaY = e.touches[i].clientY - prevTouchY;
+            for (let t of e.touches) {
+                if (t.clientX > window.innerWidth / 2) {
+                    const deltaX = t.clientX - prevTouchX;
+                    const deltaY = t.clientY - prevTouchY;
 
                     cameraRotationY -= deltaX * 0.005;
                     cameraRotationX -= deltaY * 0.005;
@@ -201,43 +204,45 @@
                     camera.rotation.y = cameraRotationY;
                     camera.rotation.x = cameraRotationX;
 
-                    prevTouchX = e.touches[i].clientX;
-                    prevTouchY = e.touches[i].clientY;
+                    prevTouchX = t.clientX;
+                    prevTouchY = t.clientY;
                 }
             }
         });
 
         window.addEventListener('touchend', () => { isSwiping = false; });
 
-        // 7. Virtual Joystick & Run Logic
+        // 7. Fixed Virtual Joystick & Run Logic
         const joystickBase = document.getElementById('joystick-base');
         const joystickStick = document.getElementById('joystick-stick');
-        let joystickActive = false;
         let moveVector = { x: 0, y: 0 };
-        let baseCenterX = 0, baseCenterY = 0;
         let isRunning = false;
+        let joystickTouchId = null;
 
         const runBtn = document.getElementById('run-btn');
         runBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isRunning = true; runBtn.style.background = 'rgba(255, 165, 0, 0.6)'; });
         runBtn.addEventListener('touchend', (e) => { e.preventDefault(); isRunning = false; runBtn.style.background = 'rgba(255, 165, 0, 0.3)'; });
 
         joystickBase.addEventListener('touchstart', (e) => {
-            joystickActive = true;
-            const rect = joystickBase.getBoundingClientRect();
-            baseCenterX = rect.left + rect.width / 2;
-            baseCenterY = rect.top + rect.height / 2;
+            e.preventDefault();
+            const touch = e.changedTouches[0];
+            joystickTouchId = touch.identifier;
         });
 
         window.addEventListener('touchmove', (e) => {
-            if (!joystickActive) return;
+            if (joystickTouchId === null) return;
             let touch = null;
-            for (let i = 0; i < e.touches.length; i++) {
-                if (e.touches[i].clientX < window.innerWidth / 2) {
-                    touch = e.touches[i];
+            for (let t of e.touches) {
+                if (t.identifier === joystickTouchId) {
+                    touch = t;
                     break;
                 }
             }
             if (!touch) return;
+
+            const rect = joystickBase.getBoundingClientRect();
+            const baseCenterX = rect.left + rect.width / 2;
+            const baseCenterY = rect.top + rect.height / 2;
 
             let deltaX = touch.clientX - baseCenterX;
             let deltaY = touch.clientY - baseCenterY;
@@ -254,11 +259,15 @@
             moveVector.y = deltaY / maxRadius;
         });
 
-        window.addEventListener('touchend', () => {
-            joystickActive = false;
-            joystickStick.style.transform = `translate(0px, 0px)`;
-            moveVector.x = 0;
-            moveVector.y = 0;
+        window.addEventListener('touchend', (e) => {
+            for (let t of e.changedTouches) {
+                if (t.identifier === joystickTouchId) {
+                    joystickTouchId = null;
+                    joystickStick.style.transform = `translate(0px, 0px)`;
+                    moveVector.x = 0;
+                    moveVector.y = 0;
+                }
+            }
         });
 
         // 8. Pick Key Logic
@@ -288,6 +297,7 @@
             requestAnimationFrame(animate);
             if (gameOver) return;
 
+            // Player Movement
             if (moveVector.y !== 0 || moveVector.x !== 0) {
                 const direction = new THREE.Vector3();
                 camera.getWorldDirection(direction);
@@ -316,6 +326,7 @@
                 gameOver = true;
             }
 
+            // Check distance to keys
             currentNearbyKey = null;
             keys.forEach(k => {
                 if (!k.collected) {
@@ -330,7 +341,6 @@
         }
         animate();
 
-        // Resize Handler
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
