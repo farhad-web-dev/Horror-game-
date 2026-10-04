@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Last Corridor - Open World Horror</title>
+    <title>The Last Corridor - Monster Horror</title>
     <style>
         body {
             margin: 0;
@@ -73,7 +73,7 @@
 </head>
 <body>
     <div id="ui">Keys Found: 0 / 3</div>
-    <div id="controls-hint">Explore the open dark hall & find keys</div>
+    <div id="controls-hint">Avoid the monster & find keys!</div>
 
     <!-- Virtual Joystick -->
     <div id="joystick-base">
@@ -89,7 +89,7 @@
     <script>
         // 1. Scene, Camera, Renderer Setup
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x020202);
+        scene.background = new THREE.Color(0x010101);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -97,7 +97,7 @@
         document.body.appendChild(renderer.domElement);
 
         // 2. Lighting & Flashlight
-        const ambientLight = new THREE.AmbientLight(0x060606);
+        const ambientLight = new THREE.AmbientLight(0x050505);
         scene.add(ambientLight);
 
         const flashlight = new THREE.SpotLight(0xffffff, 6, 30, Math.PI / 4, 0.4, 2);
@@ -107,59 +107,49 @@
         camera.add(flashlight.target);
         scene.add(camera);
 
-        // 3. Open World Room Building (Bada Hall: 40x40 size)
+        // 3. Open World Room Building
         const roomSize = 40;
         const floorMat = new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.9 });
         
-        // Floor
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), floorMat);
         floor.rotation.x = -Math.PI / 2;
         scene.add(floor);
 
-        // Ceiling
         const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), floorMat);
         ceiling.rotation.x = Math.PI / 2;
         ceiling.position.y = 5;
         scene.add(ceiling);
 
         const wallMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.8 });
-        
-        // Outer Boundaries (4 Walls)
         const wallHalf = roomSize / 2;
         
-        // North Wall
         const northWall = new THREE.Mesh(new THREE.BoxGeometry(roomSize, 5, 1), wallMat);
         northWall.position.set(0, 2.5, -wallHalf);
         scene.add(northWall);
 
-        // South Wall
         const southWall = new THREE.Mesh(new THREE.BoxGeometry(roomSize, 5, 1), wallMat);
         southWall.position.set(0, 2.5, wallHalf);
         scene.add(southWall);
 
-        // West Wall
         const westWall = new THREE.Mesh(new THREE.BoxGeometry(1, 5, roomSize), wallMat);
         westWall.position.set(-wallHalf, 2.5, 0);
         scene.add(westWall);
 
-        // East Wall
         const eastWall = new THREE.Mesh(new THREE.BoxGeometry(1, 5, roomSize), wallMat);
         eastWall.position.set(wallHalf, 2.5, 0);
         scene.add(eastWall);
 
-        // Kuch beech mein pillars ya obstacles (Open world feel ke liye)
+        // Pillars
         const pillarMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.7 });
         const pillarGeo = new THREE.BoxGeometry(2, 5, 2);
-        
-        const p1 = new THREE.Mesh(pillarGeo, pillarMat); p1.position.set(-8, 2.5, -8); scene.add(p1);
-        const p2 = new THREE.Mesh(pillarGeo, pillarMat); p2.position.set(8, 2.5, -8); scene.add(p2);
-        const p3 = new THREE.Mesh(pillarGeo, pillarMat); p3.position.set(-8, 2.5, 8); scene.add(p3);
-        const p4 = new THREE.Mesh(pillarGeo, pillarMat); p4.position.set(8, 2.5, 8); scene.add(p4);
+        scene.add(Object.assign(new THREE.Mesh(pillarGeo, pillarMat), { position: new THREE.Vector3(-8, 2.5, -8) }));
+        scene.add(Object.assign(new THREE.Mesh(pillarGeo, pillarMat), { position: new THREE.Vector3(8, 2.5, -8) }));
+        scene.add(Object.assign(new THREE.Mesh(pillarGeo, pillarMat), { position: new THREE.Vector3(-8, 2.5, 8) }));
+        scene.add(Object.assign(new THREE.Mesh(pillarGeo, pillarMat), { position: new THREE.Vector3(8, 2.5, 8) }));
 
-        // Start position inside the big room
         camera.position.set(0, 1.6, 15);
 
-        // 4. Place 3 Keys scattered around the Open Room
+        // 4. Place 3 Keys
         const keys = [];
         const keyPositions = [
             { x: -12, z: -12 },
@@ -177,7 +167,15 @@
             keys.push({ mesh: keyMesh, collected: false });
         });
 
-        // 5. Swipe Camera Controls (Right side of screen)
+        // 5. Monster Setup (Scary Red Glowing Figure)
+        const monsterGeo = new THREE.BoxGeometry(1, 3.5, 1);
+        const monsterMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const monster = new THREE.Mesh(monsterGeo, monsterMat);
+        monster.position.set(0, 1.75, -12);
+        scene.add(monster);
+        let monsterAlive = true;
+
+        // 6. Swipe Camera Controls (Right side)
         let isSwiping = false;
         let prevTouchX = 0, prevTouchY = 0;
         let cameraRotationY = 0, cameraRotationX = 0;
@@ -215,7 +213,7 @@
 
         window.addEventListener('touchend', () => { isSwiping = false; });
 
-        // 6. Virtual Joystick Movement Logic
+        // 7. Virtual Joystick Movement Logic
         const joystickBase = document.getElementById('joystick-base');
         const joystickStick = document.getElementById('joystick-stick');
         let joystickActive = false;
@@ -262,7 +260,7 @@
             moveVector.y = 0;
         });
 
-        // 7. Pick Key Logic
+        // 8. Pick Key Logic
         let keysFound = 0;
         let currentNearbyKey = null;
         const pickBtn = document.getElementById('pick-btn');
@@ -277,12 +275,14 @@
                 pickBtn.style.display = 'none';
                 
                 if(keysFound === 3) {
+                    monsterAlive = false;
+                    scene.remove(monster);
                     document.getElementById('ui').innerText = "YOU ESCAPED! 🎉";
                 }
             }
         });
 
-        // 8. Game Loop with Boundary Limits
+        // 9. Game Loop with Monster AI & Boundaries
         function animate() {
             requestAnimationFrame(animate);
 
@@ -298,10 +298,24 @@
                 camera.position.addScaledVector(direction, -moveVector.y * speed);
                 camera.position.addScaledVector(sideDirection, moveVector.x * speed);
 
-                // Open world boundary limits (room ke andar hi rahega player)
                 const limit = 18;
                 camera.position.x = Math.max(-limit, Math.min(limit, camera.position.x));
                 camera.position.z = Math.max(-limit, Math.min(limit, camera.position.z));
+            }
+
+            // Monster movement towards player (AI)
+            if (monsterAlive) {
+                const monsterSpeed = 0.035;
+                monster.position.lerp(camera.position, monsterSpeed);
+                monster.position.y = 1.75; // Height fix
+
+                // Check distance between player and monster (Jumpscare / Game Over)
+                const distanceToMonster = camera.position.distanceTo(monster.position);
+                if (distanceToMonster < 1.5) {
+                    document.getElementById('ui').innerText = "YOU DIED! 💀 (Monster got you)";
+                    monsterAlive = false;
+                    scene.remove(monster);
+                }
             }
 
             // Check distance to keys
@@ -315,7 +329,7 @@
                 }
             });
 
-            if (currentNearbyKey) {
+            if (currentNearbyKey && keysFound < 3) {
                 pickBtn.style.display = 'block';
             } else {
                 pickBtn.style.display = 'none';
