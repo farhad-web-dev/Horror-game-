@@ -99,18 +99,18 @@
     <script>
         // 1. Scene, Camera, Renderer
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x010101);
+        scene.background = new THREE.Color(0x050505);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // 2. Lighting (Thodi roshni badha di hai taaki black screen na lage)
-        const ambientLight = new THREE.AmbientLight(0x222222);
+        // 2. Lighting (Thodi roshni behtar kar di hai taaki room dikhe)
+        const ambientLight = new THREE.AmbientLight(0x444444);
         scene.add(ambientLight);
 
-        const flashlight = new THREE.SpotLight(0xffffff, 6, 30, Math.PI / 4, 0.4, 2);
+        const flashlight = new THREE.SpotLight(0xffffff, 8, 40, Math.PI / 3, 0.5, 2);
         camera.add(flashlight);
         flashlight.position.set(0, 0, 0);
         flashlight.target.position.set(0, 0, -5);
@@ -119,7 +119,7 @@
 
         // 3. Open Room Environment
         const roomSize = 40;
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.9 });
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
         
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), floorMat);
         floor.rotation.x = -Math.PI / 2;
@@ -130,7 +130,7 @@
         ceiling.position.y = 5;
         scene.add(ceiling);
 
-        const wallMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.8 });
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7 });
         const wallHalf = roomSize / 2;
         
         scene.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(roomSize, 5, 1), wallMat), { position: { x: 0, y: 2.5, z: -wallHalf } }));
@@ -139,7 +139,7 @@
         scene.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(1, 5, roomSize), wallMat), { position: { x: wallHalf, y: 2.5, z: 0 } }));
 
         // Pillars
-        const pillarMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.7 });
+        const pillarMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.6 });
         const pillarGeo = new THREE.BoxGeometry(2, 5, 2);
         [[-8,-8], [8,-8], [-8,8], [8,8]].forEach(p => {
             const mesh = new THREE.Mesh(pillarGeo, pillarMat);
@@ -149,11 +149,11 @@
 
         camera.position.set(0, 1.6, 15);
 
-        // 4. Place 3 Keys
+        // 4. Place 3 Keys (Thoda glowing effect diya hai)
         const keys = [];
         const keyPositions = [{ x: -12, z: -12 }, { x: 12, z: -5 }, { x: 0, z: 12 }];
-        const keyGeo = new THREE.SphereGeometry(0.4, 16, 16);
-        const keyMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+        const keyGeo = new THREE.SphereGeometry(0.5, 16, 16);
+        const keyMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xff5500, emissiveIntensity: 0.5 });
 
         keyPositions.forEach((pos) => {
             const keyMesh = new THREE.Mesh(keyGeo, keyMat);
@@ -164,12 +164,12 @@
 
         // 5. Monster Setup
         const monsterGroup = new THREE.Group();
-        const monsterBody = new THREE.Mesh(new THREE.BoxGeometry(1, 3.5, 1), new THREE.MeshStandardMaterial({ color: 0x1a0000 }));
+        const monsterBody = new THREE.Mesh(new THREE.BoxGeometry(1, 3.5, 1), new THREE.MeshStandardMaterial({ color: 0x330000 }));
         monsterBody.position.y = 1.75;
         monsterGroup.add(monsterBody);
         const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), eyeMat); leftEye.position.set(-0.2, 3.1, -0.5);
-        const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), eyeMat); rightEye.position.set(0.2, 3.1, -0.5);
+        const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), eyeMat); leftEye.position.set(-0.2, 3.1, -0.5);
+        const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), eyeMat); rightEye.position.set(0.2, 3.1, -0.5);
         monsterGroup.add(leftEye); monsterGroup.add(rightEye);
         monsterGroup.position.set(0, 0, -15);
         scene.add(monsterGroup);
