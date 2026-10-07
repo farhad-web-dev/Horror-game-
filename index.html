@@ -104,9 +104,15 @@
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        
+        // Canvas Styling fix for mobile browsers
+        renderer.domElement.style.position = 'fixed';
+        renderer.domElement.style.top = '0';
+        renderer.domElement.style.left = '0';
+        renderer.domElement.style.zIndex = '1';
         document.body.appendChild(renderer.domElement);
 
-        // 2. Lighting (Thodi roshni behtar kar di hai taaki room dikhe)
+        // 2. Lighting
         const ambientLight = new THREE.AmbientLight(0x444444);
         scene.add(ambientLight);
 
@@ -149,7 +155,7 @@
 
         camera.position.set(0, 1.6, 15);
 
-        // 4. Place 3 Keys (Thoda glowing effect diya hai)
+        // 4. Place 3 Keys
         const keys = [];
         const keyPositions = [{ x: -12, z: -12 }, { x: 12, z: -5 }, { x: 0, z: 12 }];
         const keyGeo = new THREE.SphereGeometry(0.5, 16, 16);
