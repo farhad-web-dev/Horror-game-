@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Last Corridor - Advanced Horror</title>
+    <title>The Last Corridor - Ultra Graphics</title>
     <style>
         body {
             margin: 0;
@@ -19,7 +19,7 @@
             left: 20px;
             color: #ff5555;
             font-size: 20px;
-            text-shadow: 2px 2px 4px #000;
+            text-shadow: 2px 2px 6px #000;
             z-index: 10;
         }
         #controls-hint {
@@ -37,8 +37,8 @@
             left: 40px;
             width: 120px;
             height: 120px;
-            background: rgba(255, 255, 255, 0.15);
-            border: 2px solid rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
             z-index: 10;
             touch-action: none;
@@ -49,8 +49,8 @@
             left: 35px;
             width: 50px;
             height: 50px;
-            background: rgba(255, 255, 255, 0.4);
-            border: 2px solid rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.5);
             border-radius: 50%;
             pointer-events: none;
         }
@@ -58,8 +58,8 @@
         .action-btn {
             position: absolute;
             bottom: 50px;
-            background: rgba(255, 255, 255, 0.15);
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
             color: white;
             font-size: 16px;
             padding: 15px 20px;
@@ -70,14 +70,14 @@
         }
         #run-btn {
             right: 140px;
-            background: rgba(255, 165, 0, 0.3);
-            border-color: rgba(255, 165, 0, 0.6);
+            background: rgba(255, 165, 0, 0.25);
+            border-color: rgba(255, 165, 0, 0.5);
             display: block !important;
         }
         #pick-btn {
             right: 30px;
-            background: rgba(255, 85, 85, 0.3);
-            border-color: rgba(255, 85, 85, 0.6);
+            background: rgba(255, 85, 85, 0.25);
+            border-color: rgba(255, 85, 85, 0.5);
         }
         #restart-btn {
             position: absolute;
@@ -99,7 +99,7 @@
 </head>
 <body>
     <div id="ui">Keys Found: 0 / 3</div>
-    <div id="controls-hint">Avoid the entity, find 3 keys & escape!</div>
+    <div id="controls-hint">Find 3 keys and escape the dark maze!</div>
 
     <!-- Virtual Joystick -->
     <div id="joystick-base">
@@ -115,15 +115,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
     <script>
-        // 1. Scene, Camera, Renderer with Dark Atmospheric Fog
+        // 1. Scene, Camera, Renderer with High Graphics Settings
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x010101);
-        scene.fog = new THREE.FogExp2(0x010101, 0.085);
+        scene.background = new THREE.Color(0x000000);
+        scene.fog = new THREE.FogExp2(0x000000, 0.08);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
         
         renderer.domElement.style.position = 'fixed';
         renderer.domElement.style.top = '0';
@@ -131,54 +134,60 @@
         renderer.domElement.style.zIndex = '1';
         document.body.appendChild(renderer.domElement);
 
-        // 2. Lighting & Flashlight
-        const ambientLight = new THREE.AmbientLight(0x0a0a0a);
+        // 2. Cinematic Lighting
+        const ambientLight = new THREE.AmbientLight(0x050505);
         scene.add(ambientLight);
 
-        const flashlight = new THREE.SpotLight(0xffffff, 12, 28, Math.PI / 4, 0.4, 1.8);
+        const flashlight = new THREE.SpotLight(0xfff8e7, 15, 30, Math.PI / 3, 0.5, 1.5);
+        flashlight.castShadow = true;
+        flashlight.shadow.bias = -0.002;
+        flashlight.shadow.mapSize.width = 1024;
+        flashlight.shadow.mapSize.height = 1024;
         camera.add(flashlight);
         flashlight.position.set(0, 0, 0);
         flashlight.target.position.set(0, 0, -5);
         camera.add(flashlight.target);
         scene.add(camera);
 
-        // 3. Multi-Room Maze Environment with Collision Boxes
+        // 3. Detailed Maze Environment with Rich Textures/Materials
         const roomSize = 40;
-        const wallBoxes = []; // Collision storage
+        const wallBoxes = [];
 
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4, metalness: 0.2 });
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), floorMat);
         floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
         scene.add(floor);
 
         const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), floorMat);
-        ceiling.rotation.x = Math.PI / 2;
+        ceiling.rotation.y = Math.PI;
         ceiling.position.y = 5;
         scene.add(ceiling);
 
-        const wallMat = new THREE.MeshStandardMaterial({ color: 0x181818, roughness: 0.7, metalness: 0.1 });
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8, metalness: 0.1 });
         const wallHalf = roomSize / 2;
 
         function createWall(w, h, d, x, y, z) {
             const geom = new THREE.BoxGeometry(w, h, d);
             const mesh = new THREE.Mesh(geom, wallMat);
             mesh.position.set(x, y, z);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
             scene.add(mesh);
 
-            // Compute Bounding Box for Collision
             geom.computeBoundingBox();
             const box = new THREE.Box3();
             box.setFromObject(mesh);
             wallBoxes.push(box);
         }
 
-        // Outer Boundaries
+        // Outer Walls
         createWall(roomSize, 5, 1, 0, 2.5, -wallHalf);
         createWall(roomSize, 5, 1, 0, 2.5, wallHalf);
         createWall(1, 5, roomSize, -wallHalf, 2.5, 0);
         createWall(1, 5, roomSize, wallHalf, 2.5, 0);
 
-        // Inner Maze Walls (Granny Style Rooms)
+        // Inner Maze Dividers
         createWall(18, 5, 1, -11, 2.5, -5);
         createWall(1, 5, 14, -5, 2.5, 4);
         createWall(16, 5, 1, 10, 2.5, 5);
@@ -187,53 +196,47 @@
 
         camera.position.set(0, 1.6, 17);
 
-        // 4. Place 3 Keys in Hidden Rooms
+        // 4. Glowing Keys
         const keys = [];
         const keyPositions = [
             { x: -16, z: -16 },
             { x: 16, z: -14 },
             { x: 0, z: 16 }
         ];
-        const keyGeo = new THREE.SphereGeometry(0.35, 16, 16);
-        const keyMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xff4500, emissiveIntensity: 0.9 });
+        const keyGeo = new THREE.SphereGeometry(0.35, 24, 24);
+        const keyMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xff6600, emissiveIntensity: 1.0, roughness: 0.2 });
 
         keyPositions.forEach((pos) => {
             const keyMesh = new THREE.Mesh(keyGeo, keyMat);
             keyMesh.position.set(pos.x, 1, pos.z);
+            keyMesh.castShadow = true;
             scene.add(keyMesh);
             keys.push({ mesh: keyMesh, collected: false });
         });
 
-        // 5. Upgraded Creepy Monster Setup (Slender & Detailed)
+        // 5. Ultra Monster Model (Creepy & High-Detail)
         const monsterGroup = new THREE.Group();
+        const monsterMat = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 0.5, metalness: 0.4 });
         
-        // Tall skeletal body
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 0.9, metalness: 0.2 });
-        const monsterTorso = new THREE.Mesh(new THREE.BoxGeometry(0.8, 3.2, 0.6), bodyMat);
-        monsterTorso.position.y = 1.8;
-        monsterGroup.add(monsterTorso);
+        const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 3.0, 0.5), monsterMat);
+        torso.position.y = 1.7;
+        torso.castShadow = true;
+        monsterGroup.add(torso);
 
-        // Sinister Head
-        const monsterHead = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 0.7), bodyMat);
-        monsterHead.position.y = 3.5;
-        monsterGroup.add(monsterHead);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.7, 0.6), monsterMat);
+        head.position.y = 3.3;
+        head.castShadow = true;
+        monsterGroup.add(head);
 
-        // Glowing Red Eyes
         const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), eyeMat); leftEye.position.set(-0.18, 3.6, -0.35);
-        const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), eyeMat); rightEye.position.set(0.18, 3.6, -0.35);
+        const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 16), eyeMat); leftEye.position.set(-0.16, 3.4, -0.3);
+        const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 16), eyeMat); rightEye.position.set(0.16, 3.4, -0.3);
         monsterGroup.add(leftEye); monsterGroup.add(rightEye);
-
-        // Long creepy arms
-        const armGeo = new THREE.BoxGeometry(0.2, 2.5, 0.2);
-        const leftArm = new THREE.Mesh(armGeo, bodyMat); leftArm.position.set(-0.6, 1.8, 0);
-        const rightArm = new THREE.Mesh(armGeo, bodyMat); rightArm.position.set(0.6, 1.8, 0);
-        monsterGroup.add(leftArm); monsterGroup.add(rightArm);
 
         monsterGroup.position.set(0, 0, -16);
         scene.add(monsterGroup);
 
-        // 6. Swipe Camera Controls
+        // 6. Touch & Camera Controls
         let isSwiping = false;
         let prevTouchX = 0, prevTouchY = 0;
         let cameraRotationY = 0, cameraRotationX = 0;
@@ -271,7 +274,7 @@
 
         window.addEventListener('touchend', () => { isSwiping = false; });
 
-        // 7. Virtual Joystick & Run Logic
+        // 7. Joystick Controls
         const joystickBase = document.getElementById('joystick-base');
         const joystickStick = document.getElementById('joystick-stick');
         let moveVector = { x: 0, y: 0 };
@@ -279,8 +282,8 @@
         let joystickTouchId = null;
 
         const runBtn = document.getElementById('run-btn');
-        runBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isRunning = true; runBtn.style.background = 'rgba(255, 165, 0, 0.7)'; });
-        runBtn.addEventListener('touchend', (e) => { e.preventDefault(); isRunning = false; runBtn.style.background = 'rgba(255, 165, 0, 0.3)'; });
+        runBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isRunning = true; runBtn.style.background = 'rgba(255, 165, 0, 0.6)'; });
+        runBtn.addEventListener('touchend', (e) => { e.preventDefault(); isRunning = false; runBtn.style.background = 'rgba(255, 165, 0, 0.25)'; });
 
         joystickBase.addEventListener('touchstart', (e) => {
             e.preventDefault();
@@ -329,7 +332,7 @@
             }
         });
 
-        // 8. Pick Key Logic
+        // 8. Key Collection Logic
         let keysFound = 0;
         let currentNearbyKey = null;
         const pickBtn = document.getElementById('pick-btn');
@@ -352,14 +355,13 @@
             }
         });
 
-        // 9. Game Loop with Collision Checking
+        // 9. Main Loop
         const playerRadius = 0.4;
 
         function animate() {
             requestAnimationFrame(animate);
             if (gameOver) return;
 
-            // Player Movement with Wall Collision Detection
             if (moveVector.y !== 0 || moveVector.x !== 0) {
                 const direction = new THREE.Vector3();
                 camera.getWorldDirection(direction);
@@ -373,13 +375,11 @@
                 potentialPosition.addScaledVector(direction, -moveVector.y * speed);
                 potentialPosition.addScaledVector(sideDirection, moveVector.x * speed);
 
-                // Create a bounding box for player at potential position
                 const playerBox = new THREE.Box3(
                     new THREE.Vector3(potentialPosition.x - playerRadius, 0, potentialPosition.z - playerRadius),
                     new THREE.Vector3(potentialPosition.x + playerRadius, 3, potentialPosition.z + playerRadius)
                 );
 
-                // Check collision against all walls
                 let collision = false;
                 for (let box of wallBoxes) {
                     if (box.intersectsBox(playerBox)) {
@@ -388,19 +388,14 @@
                     }
                 }
 
-                // If no collision, update player position
                 if (!collision) {
                     camera.position.copy(potentialPosition);
                 }
             }
 
-            // Monster AI Animation & Movement
-            const monsterSpeed = 0.032 + (keysFound * 0.004);
+            const monsterSpeed = 0.033 + (keysFound * 0.004);
             monsterGroup.lookAt(monsterGroup.position.x, monsterGroup.position.y, camera.position.x);
             monsterGroup.position.lerp(new THREE.Vector3(camera.position.x, 0, camera.position.z), monsterSpeed);
-
-            // Subtle eerie floating effect for monster head
-            monsterHead.position.y = 3.5 + Math.sin(Date.now() * 0.005) * 0.1;
 
             if (monsterGroup.position.distanceTo(camera.position) < 1.8) {
                 document.getElementById('ui').innerText = "CAUGHT BY THE ENTITY! 💀 GAME OVER";
@@ -409,7 +404,6 @@
                 document.getElementById('restart-btn').style.display = 'block';
             }
 
-            // Check distance to keys
             currentNearbyKey = null;
             keys.forEach(k => {
                 if (!k.collected) {
