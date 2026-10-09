@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Last Corridor - Granny Style Maze</title>
+    <title>The Last Corridor - Advanced Horror</title>
     <style>
         body {
             margin: 0;
@@ -99,7 +99,7 @@
 </head>
 <body>
     <div id="ui">Keys Found: 0 / 3</div>
-    <div id="controls-hint">Explore the rooms, find 3 keys & escape!</div>
+    <div id="controls-hint">Avoid the entity, find 3 keys & escape!</div>
 
     <!-- Virtual Joystick -->
     <div id="joystick-base">
@@ -115,14 +115,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
     <script>
-        // 1. Scene, Camera, Renderer with Dark Fog
+        // 1. Scene, Camera, Renderer with Dark Atmospheric Fog
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x020202);
-        scene.fog = new THREE.FogExp2(0x020202, 0.08);
+        scene.background = new THREE.Color(0x010101);
+        scene.fog = new THREE.FogExp2(0x010101, 0.085);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
         
         renderer.domElement.style.position = 'fixed';
         renderer.domElement.style.top = '0';
@@ -131,20 +132,21 @@
         document.body.appendChild(renderer.domElement);
 
         // 2. Lighting & Flashlight
-        const ambientLight = new THREE.AmbientLight(0x111111);
+        const ambientLight = new THREE.AmbientLight(0x0a0a0a);
         scene.add(ambientLight);
 
-        const flashlight = new THREE.SpotLight(0xffffff, 9, 25, Math.PI / 4, 0.5, 2);
+        const flashlight = new THREE.SpotLight(0xffffff, 12, 28, Math.PI / 4, 0.4, 1.8);
         camera.add(flashlight);
         flashlight.position.set(0, 0, 0);
         flashlight.target.position.set(0, 0, -5);
         camera.add(flashlight.target);
         scene.add(camera);
 
-        // 3. Multi-Room / House Maze Environment
+        // 3. Multi-Room Maze Environment with Collision Boxes
         const roomSize = 40;
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.9 });
-        
+        const wallBoxes = []; // Collision storage
+
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), floorMat);
         floor.rotation.x = -Math.PI / 2;
         scene.add(floor);
@@ -154,13 +156,20 @@
         ceiling.position.y = 5;
         scene.add(ceiling);
 
-        const wallMat = new THREE.MeshStandardMaterial({ color: 0x1f1f1f, roughness: 0.7 });
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x181818, roughness: 0.7, metalness: 0.1 });
         const wallHalf = roomSize / 2;
-        
+
         function createWall(w, h, d, x, y, z) {
-            const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
+            const geom = new THREE.BoxGeometry(w, h, d);
+            const mesh = new THREE.Mesh(geom, wallMat);
             mesh.position.set(x, y, z);
             scene.add(mesh);
+
+            // Compute Bounding Box for Collision
+            geom.computeBoundingBox();
+            const box = new THREE.Box3();
+            box.setFromObject(mesh);
+            wallBoxes.push(box);
         }
 
         // Outer Boundaries
@@ -169,24 +178,24 @@
         createWall(1, 5, roomSize, -wallHalf, 2.5, 0);
         createWall(1, 5, roomSize, wallHalf, 2.5, 0);
 
-        // Inner Maze Walls (Creating rooms and corridors like Granny's house)
-        createWall(20, 5, 1, -10, 2.5, -5);   // Room 1 divider top-left
-        createWall(1, 5, 15, -5, 2.5, 5);     // Room corridor divider
-        createWall(18, 5, 1, 10, 2.5, 5);     // Room 2 divider right
-        createWall(1, 5, 12, 5, 2.5, -10);    // Inner hallway wall
-        createWall(14, 5, 1, -3, 2.5, 12);    // Bottom room wall
+        // Inner Maze Walls (Granny Style Rooms)
+        createWall(18, 5, 1, -11, 2.5, -5);
+        createWall(1, 5, 14, -5, 2.5, 4);
+        createWall(16, 5, 1, 10, 2.5, 5);
+        createWall(1, 5, 12, 4, 2.5, -10);
+        createWall(14, 5, 1, -2, 2.5, 12);
 
         camera.position.set(0, 1.6, 17);
 
-        // 4. Place 3 Keys in Different Rooms
+        // 4. Place 3 Keys in Hidden Rooms
         const keys = [];
         const keyPositions = [
-            { x: -16, z: -16 }, // Hidden in top-left room
-            { x: 16, z: -14 },  // Hidden in top-right room
-            { x: 0, z: 16 }     // Hidden in bottom hallway
+            { x: -16, z: -16 },
+            { x: 16, z: -14 },
+            { x: 0, z: 16 }
         ];
-        const keyGeo = new THREE.SphereGeometry(0.4, 16, 16);
-        const keyMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, emissive: 0xff6600, emissiveIntensity: 0.8 });
+        const keyGeo = new THREE.SphereGeometry(0.35, 16, 16);
+        const keyMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xff4500, emissiveIntensity: 0.9 });
 
         keyPositions.forEach((pos) => {
             const keyMesh = new THREE.Mesh(keyGeo, keyMat);
@@ -195,15 +204,32 @@
             keys.push({ mesh: keyMesh, collected: false });
         });
 
-        // 5. Monster Setup
+        // 5. Upgraded Creepy Monster Setup (Slender & Detailed)
         const monsterGroup = new THREE.Group();
-        const monsterBody = new THREE.Mesh(new THREE.BoxGeometry(1.2, 3.8, 1.2), new THREE.MeshStandardMaterial({ color: 0x1a0000, roughness: 0.2 }));
-        monsterBody.position.y = 1.9;
-        monsterGroup.add(monsterBody);
+        
+        // Tall skeletal body
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 0.9, metalness: 0.2 });
+        const monsterTorso = new THREE.Mesh(new THREE.BoxGeometry(0.8, 3.2, 0.6), bodyMat);
+        monsterTorso.position.y = 1.8;
+        monsterGroup.add(monsterTorso);
+
+        // Sinister Head
+        const monsterHead = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 0.7), bodyMat);
+        monsterHead.position.y = 3.5;
+        monsterGroup.add(monsterHead);
+
+        // Glowing Red Eyes
         const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), eyeMat); leftEye.position.set(-0.25, 3.3, -0.6);
-        const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), eyeMat); rightEye.position.set(0.25, 3.3, -0.6);
+        const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), eyeMat); leftEye.position.set(-0.18, 3.6, -0.35);
+        const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), eyeMat); rightEye.position.set(0.18, 3.6, -0.35);
         monsterGroup.add(leftEye); monsterGroup.add(rightEye);
+
+        // Long creepy arms
+        const armGeo = new THREE.BoxGeometry(0.2, 2.5, 0.2);
+        const leftArm = new THREE.Mesh(armGeo, bodyMat); leftArm.position.set(-0.6, 1.8, 0);
+        const rightArm = new THREE.Mesh(armGeo, bodyMat); rightArm.position.set(0.6, 1.8, 0);
+        monsterGroup.add(leftArm); monsterGroup.add(rightArm);
+
         monsterGroup.position.set(0, 0, -16);
         scene.add(monsterGroup);
 
@@ -326,12 +352,14 @@
             }
         });
 
-        // 9. Game Loop
+        // 9. Game Loop with Collision Checking
+        const playerRadius = 0.4;
+
         function animate() {
             requestAnimationFrame(animate);
             if (gameOver) return;
 
-            // Player Movement
+            // Player Movement with Wall Collision Detection
             if (moveVector.y !== 0 || moveVector.x !== 0) {
                 const direction = new THREE.Vector3();
                 camera.getWorldDirection(direction);
@@ -339,23 +367,43 @@
                 direction.normalize();
 
                 const sideDirection = new THREE.Vector3(-direction.z, 0, direction.x);
-                const speed = isRunning ? 0.14 : 0.07;
+                const speed = isRunning ? 0.13 : 0.065;
 
-                camera.position.addScaledVector(direction, -moveVector.y * speed);
-                camera.position.addScaledVector(sideDirection, moveVector.x * speed);
+                const potentialPosition = camera.position.clone();
+                potentialPosition.addScaledVector(direction, -moveVector.y * speed);
+                potentialPosition.addScaledVector(sideDirection, moveVector.x * speed);
 
-                const limit = 18;
-                camera.position.x = Math.max(-limit, Math.min(limit, camera.position.x));
-                camera.position.z = Math.max(-limit, Math.min(limit, camera.position.z));
+                // Create a bounding box for player at potential position
+                const playerBox = new THREE.Box3(
+                    new THREE.Vector3(potentialPosition.x - playerRadius, 0, potentialPosition.z - playerRadius),
+                    new THREE.Vector3(potentialPosition.x + playerRadius, 3, potentialPosition.z + playerRadius)
+                );
+
+                // Check collision against all walls
+                let collision = false;
+                for (let box of wallBoxes) {
+                    if (box.intersectsBox(playerBox)) {
+                        collision = true;
+                        break;
+                    }
+                }
+
+                // If no collision, update player position
+                if (!collision) {
+                    camera.position.copy(potentialPosition);
+                }
             }
 
-            // Monster AI
-            const monsterSpeed = 0.035 + (keysFound * 0.004);
-            monsterGroup.lookAt(monsterGroup.position.x, monsterGroup.position.y, camera.position.z);
+            // Monster AI Animation & Movement
+            const monsterSpeed = 0.032 + (keysFound * 0.004);
+            monsterGroup.lookAt(monsterGroup.position.x, monsterGroup.position.y, camera.position.x);
             monsterGroup.position.lerp(new THREE.Vector3(camera.position.x, 0, camera.position.z), monsterSpeed);
 
+            // Subtle eerie floating effect for monster head
+            monsterHead.position.y = 3.5 + Math.sin(Date.now() * 0.005) * 0.1;
+
             if (monsterGroup.position.distanceTo(camera.position) < 1.8) {
-                document.getElementById('ui').innerText = "CAUGHT BY MONSTER! 💀 GAME OVER";
+                document.getElementById('ui').innerText = "CAUGHT BY THE ENTITY! 💀 GAME OVER";
                 document.getElementById('ui').style.color = "red";
                 gameOver = true;
                 document.getElementById('restart-btn').style.display = 'block';
@@ -366,7 +414,7 @@
             keys.forEach(k => {
                 if (!k.collected) {
                     const distance = camera.position.distanceTo(k.mesh.position);
-                    if (distance < 3) currentNearbyKey = k;
+                    if (distance < 2.5) currentNearbyKey = k;
                 }
             });
 
