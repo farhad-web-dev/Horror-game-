@@ -139,10 +139,17 @@
         const wallMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7 });
         const wallHalf = roomSize / 2;
         
-        scene.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(roomSize, 5, 1), wallMat), { position: { x: 0, y: 2.5, z: -wallHalf } }));
-        scene.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(roomSize, 5, 1), wallMat), { position: { x: 0, y: 2.5, z: wallHalf } }));
-        scene.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(1, 5, roomSize), wallMat), { position: { x: -wallHalf, y: 2.5, z: 0 } }));
-        scene.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(1, 5, roomSize), wallMat), { position: { x: wallHalf, y: 2.5, z: 0 } }));
+        // Fixed Wall Creations
+        function createWall(w, h, d, x, y, z) {
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
+            mesh.position.set(x, y, z);
+            scene.add(mesh);
+        }
+
+        createWall(roomSize, 5, 1, 0, 2.5, -wallHalf);
+        createWall(roomSize, 5, 1, 0, 2.5, wallHalf);
+        createWall(1, 5, roomSize, -wallHalf, 2.5, 0);
+        createWall(1, 5, roomSize, wallHalf, 2.5, 0);
 
         // Pillars
         const pillarMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.6 });
