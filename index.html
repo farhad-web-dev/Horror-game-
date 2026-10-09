@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Last Corridor - Fixed Controls</title>
+    <title>The Last Corridor - Granny Style Maze</title>
     <style>
         body {
             margin: 0;
@@ -66,23 +66,40 @@
             border-radius: 30px;
             backdrop-filter: blur(5px);
             z-index: 10;
+            display: none;
         }
         #run-btn {
             right: 140px;
             background: rgba(255, 165, 0, 0.3);
             border-color: rgba(255, 165, 0, 0.6);
+            display: block !important;
         }
         #pick-btn {
             right: 30px;
             background: rgba(255, 85, 85, 0.3);
             border-color: rgba(255, 85, 85, 0.6);
+        }
+        #restart-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 30px;
+            background: #ff5555;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-family: monospace;
+            cursor: pointer;
+            z-index: 20;
             display: none;
         }
     </style>
 </head>
 <body>
     <div id="ui">Keys Found: 0 / 3</div>
-    <div id="controls-hint">Use left joystick to move, right screen to look!</div>
+    <div id="controls-hint">Explore the rooms, find 3 keys & escape!</div>
 
     <!-- Virtual Joystick -->
     <div id="joystick-base">
@@ -92,40 +109,41 @@
     <!-- Buttons -->
     <div id="run-btn" class="action-btn">🏃‍♂️ RUN</div>
     <div id="pick-btn" class="action-btn">🔑 PICK</div>
+    <button id="restart-btn" onclick="location.reload()">PLAY AGAIN 🔄</button>
 
     <!-- Three.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
     <script>
-        // 1. Scene, Camera, Renderer
+        // 1. Scene, Camera, Renderer with Dark Fog
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050505);
+        scene.background = new THREE.Color(0x020202);
+        scene.fog = new THREE.FogExp2(0x020202, 0.08);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         
-        // Canvas Styling fix for mobile browsers
         renderer.domElement.style.position = 'fixed';
         renderer.domElement.style.top = '0';
         renderer.domElement.style.left = '0';
         renderer.domElement.style.zIndex = '1';
         document.body.appendChild(renderer.domElement);
 
-        // 2. Lighting
-        const ambientLight = new THREE.AmbientLight(0x444444);
+        // 2. Lighting & Flashlight
+        const ambientLight = new THREE.AmbientLight(0x111111);
         scene.add(ambientLight);
 
-        const flashlight = new THREE.SpotLight(0xffffff, 8, 40, Math.PI / 3, 0.5, 2);
+        const flashlight = new THREE.SpotLight(0xffffff, 9, 25, Math.PI / 4, 0.5, 2);
         camera.add(flashlight);
         flashlight.position.set(0, 0, 0);
         flashlight.target.position.set(0, 0, -5);
         camera.add(flashlight.target);
         scene.add(camera);
 
-        // 3. Open Room Environment
+        // 3. Multi-Room / House Maze Environment
         const roomSize = 40;
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.9 });
         
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), floorMat);
         floor.rotation.x = -Math.PI / 2;
@@ -136,37 +154,39 @@
         ceiling.position.y = 5;
         scene.add(ceiling);
 
-        const wallMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7 });
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x1f1f1f, roughness: 0.7 });
         const wallHalf = roomSize / 2;
         
-        // Fixed Wall Creations
         function createWall(w, h, d, x, y, z) {
             const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
             mesh.position.set(x, y, z);
             scene.add(mesh);
         }
 
+        // Outer Boundaries
         createWall(roomSize, 5, 1, 0, 2.5, -wallHalf);
         createWall(roomSize, 5, 1, 0, 2.5, wallHalf);
         createWall(1, 5, roomSize, -wallHalf, 2.5, 0);
         createWall(1, 5, roomSize, wallHalf, 2.5, 0);
 
-        // Pillars
-        const pillarMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.6 });
-        const pillarGeo = new THREE.BoxGeometry(2, 5, 2);
-        [[-8,-8], [8,-8], [-8,8], [8,8]].forEach(p => {
-            const mesh = new THREE.Mesh(pillarGeo, pillarMat);
-            mesh.position.set(p[0], 2.5, p[1]);
-            scene.add(mesh);
-        });
+        // Inner Maze Walls (Creating rooms and corridors like Granny's house)
+        createWall(20, 5, 1, -10, 2.5, -5);   // Room 1 divider top-left
+        createWall(1, 5, 15, -5, 2.5, 5);     // Room corridor divider
+        createWall(18, 5, 1, 10, 2.5, 5);     // Room 2 divider right
+        createWall(1, 5, 12, 5, 2.5, -10);    // Inner hallway wall
+        createWall(14, 5, 1, -3, 2.5, 12);    // Bottom room wall
 
-        camera.position.set(0, 1.6, 15);
+        camera.position.set(0, 1.6, 17);
 
-        // 4. Place 3 Keys
+        // 4. Place 3 Keys in Different Rooms
         const keys = [];
-        const keyPositions = [{ x: -12, z: -12 }, { x: 12, z: -5 }, { x: 0, z: 12 }];
-        const keyGeo = new THREE.SphereGeometry(0.5, 16, 16);
-        const keyMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xff5500, emissiveIntensity: 0.5 });
+        const keyPositions = [
+            { x: -16, z: -16 }, // Hidden in top-left room
+            { x: 16, z: -14 },  // Hidden in top-right room
+            { x: 0, z: 16 }     // Hidden in bottom hallway
+        ];
+        const keyGeo = new THREE.SphereGeometry(0.4, 16, 16);
+        const keyMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, emissive: 0xff6600, emissiveIntensity: 0.8 });
 
         keyPositions.forEach((pos) => {
             const keyMesh = new THREE.Mesh(keyGeo, keyMat);
@@ -177,17 +197,17 @@
 
         // 5. Monster Setup
         const monsterGroup = new THREE.Group();
-        const monsterBody = new THREE.Mesh(new THREE.BoxGeometry(1, 3.5, 1), new THREE.MeshStandardMaterial({ color: 0x330000 }));
-        monsterBody.position.y = 1.75;
+        const monsterBody = new THREE.Mesh(new THREE.BoxGeometry(1.2, 3.8, 1.2), new THREE.MeshStandardMaterial({ color: 0x1a0000, roughness: 0.2 }));
+        monsterBody.position.y = 1.9;
         monsterGroup.add(monsterBody);
         const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), eyeMat); leftEye.position.set(-0.2, 3.1, -0.5);
-        const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), eyeMat); rightEye.position.set(0.2, 3.1, -0.5);
+        const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), eyeMat); leftEye.position.set(-0.25, 3.3, -0.6);
+        const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), eyeMat); rightEye.position.set(0.25, 3.3, -0.6);
         monsterGroup.add(leftEye); monsterGroup.add(rightEye);
-        monsterGroup.position.set(0, 0, -15);
+        monsterGroup.position.set(0, 0, -16);
         scene.add(monsterGroup);
 
-        // 6. Swipe Camera Controls (Right side of screen)
+        // 6. Swipe Camera Controls
         let isSwiping = false;
         let prevTouchX = 0, prevTouchY = 0;
         let cameraRotationY = 0, cameraRotationX = 0;
@@ -225,7 +245,7 @@
 
         window.addEventListener('touchend', () => { isSwiping = false; });
 
-        // 7. Fixed Virtual Joystick & Run Logic
+        // 7. Virtual Joystick & Run Logic
         const joystickBase = document.getElementById('joystick-base');
         const joystickStick = document.getElementById('joystick-stick');
         let moveVector = { x: 0, y: 0 };
@@ -233,7 +253,7 @@
         let joystickTouchId = null;
 
         const runBtn = document.getElementById('run-btn');
-        runBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isRunning = true; runBtn.style.background = 'rgba(255, 165, 0, 0.6)'; });
+        runBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isRunning = true; runBtn.style.background = 'rgba(255, 165, 0, 0.7)'; });
         runBtn.addEventListener('touchend', (e) => { e.preventDefault(); isRunning = false; runBtn.style.background = 'rgba(255, 165, 0, 0.3)'; });
 
         joystickBase.addEventListener('touchstart', (e) => {
@@ -301,6 +321,7 @@
                 if(keysFound === 3) {
                     document.getElementById('ui').innerText = "YOU ESCAPED! 🎉";
                     gameOver = true;
+                    document.getElementById('restart-btn').style.display = 'block';
                 }
             }
         });
@@ -329,14 +350,15 @@
             }
 
             // Monster AI
-            const monsterSpeed = 0.035;
-            monsterGroup.lookAt(camera.position.x, monsterGroup.position.y, camera.position.z);
+            const monsterSpeed = 0.035 + (keysFound * 0.004);
+            monsterGroup.lookAt(monsterGroup.position.x, monsterGroup.position.y, camera.position.z);
             monsterGroup.position.lerp(new THREE.Vector3(camera.position.x, 0, camera.position.z), monsterSpeed);
 
             if (monsterGroup.position.distanceTo(camera.position) < 1.8) {
                 document.getElementById('ui').innerText = "CAUGHT BY MONSTER! 💀 GAME OVER";
                 document.getElementById('ui').style.color = "red";
                 gameOver = true;
+                document.getElementById('restart-btn').style.display = 'block';
             }
 
             // Check distance to keys
