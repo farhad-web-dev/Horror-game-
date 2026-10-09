@@ -3,426 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Last Corridor - Ultra Graphics</title>
+    <title>3D Horror Maze</title>
     <style>
-        body {
+        body, html {
             margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
             overflow: hidden;
-            background-color: #000;
-            touch-action: none;
-            font-family: monospace;
-            user-select: none;
+            font-family: 'Courier New', Courier, monospace;
+            background: #000;
         }
-        #ui {
+        #canvas-container {
+            width: 100%;
+            height: 100%;
             position: absolute;
-            top: 20px;
-            left: 20px;
-            color: #ff5555;
-            font-size: 20px;
-            text-shadow: 2px 2px 6px #000;
+            top: 0;
+            left: 0;
+        }
+        /* UI Screens Overlay */
+        .ui-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             z-index: 10;
+            color: #fff;
         }
-        #controls-hint {
-            position: absolute;
-            top: 60px;
-            left: 20px;
-            color: #888;
-            font-size: 12px;
-            z-index: 10;
+        .ui-screen h1 {
+            font-size: 3rem;
+            color: #ff3333;
+            text-shadow: 0 0 10px #ff0000;
+            margin-bottom: 20px;
+            letter-spacing: 3px;
         }
-        /* Virtual Joystick CSS */
-        #joystick-base {
-            position: absolute;
-            bottom: 40px;
-            left: 40px;
-            width: 120px;
-            height: 120px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            z-index: 10;
-            touch-action: none;
-        }
-        #joystick-stick {
-            position: absolute;
-            top: 35px;
-            left: 35px;
-            width: 50px;
-            height: 50px;
-            background: rgba(255, 255, 255, 0.3);
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            pointer-events: none;
-        }
-        /* Action Buttons */
-        .action-btn {
-            position: absolute;
-            bottom: 50px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            font-size: 16px;
-            padding: 15px 20px;
-            border-radius: 30px;
-            backdrop-filter: blur(5px);
-            z-index: 10;
-            display: none;
-        }
-        #run-btn {
-            right: 140px;
-            background: rgba(255, 165, 0, 0.25);
-            border-color: rgba(255, 165, 0, 0.5);
-            display: block !important;
-        }
-        #pick-btn {
-            right: 30px;
-            background: rgba(255, 85, 85, 0.25);
-            border-color: rgba(255, 85, 85, 0.5);
-        }
-        #restart-btn {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            padding: 15px 30px;
-            background: #ff5555;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 18px;
-            font-family: monospace;
+        .btn {
+            background: #222;
+            color: #fff;
+            border: 2px solid #ff3333;
+            padding: 12px 30px;
+            font-size: 1.2rem;
             cursor: pointer;
-            z-index: 20;
+            margin: 10px;
+            transition: 0.3s;
+            border-radius: 5px;
+        }
+        .btn:hover {
+            background: #ff3333;
+            box-shadow: 0 0 15px #ff0000;
+        }
+        /* Settings Panel */
+        .settings-panel {
             display: none;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(20, 20, 20, 0.95);
+            padding: 30px;
+            border: 1px solid #444;
+            border-radius: 8px;
+        }
+        .setting-item {
+            margin: 15px 0;
+            text-align: center;
+        }
+        .setting-item label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 1rem;
+        }
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
 <body>
-    <div id="ui">Keys Found: 0 / 3</div>
-    <div id="controls-hint">Find 3 keys and escape the dark maze!</div>
 
-    <!-- Virtual Joystick -->
-    <div id="joystick-base">
-        <div id="joystick-stick"></div>
+    <div id="canvas-container"></div>
+
+    <!-- MAIN MENU SCREEN -->
+    <div id="main-menu" class="ui-screen">
+        <h1>THE LAST CORRIDOR</h1>
+        <button class="btn" onclick="startGame()">PLAY GAME</button>
+        <button class="btn" onclick="openSettings()">SETTINGS</button>
     </div>
 
-    <!-- Buttons -->
-    <div id="run-btn" class="action-btn">🏃‍♂️ RUN</div>
-    <div id="pick-btn" class="action-btn">🔑 PICK</div>
-    <button id="restart-btn" onclick="location.reload()">PLAY AGAIN 🔄</button>
+    <!-- SETTINGS SCREEN -->
+    <div id="settings-screen" class="ui-screen hidden">
+        <h1>SETTINGS</h1>
+        <div class="settings-panel">
+            <div class="setting-item">
+                <label>Mouse Sensitivity: <span id="sens-val">1.0</span></label>
+                <input type="range" id="sensitivity-slider" min="0.2" max="3.0" step="0.1" value="1.0" oninput="updateSensitivity(this.value)">
+            </div>
+            <div class="setting-item">
+                <label>Audio / Jumpscare SFX</label>
+                <button class="btn" onclick="toggleAudio()" id="audio-btn">Audio: ON</button>
+            </div>
+            <button class="btn" onclick="closeSettings()">BACK</button>
+        </div>
+    </div>
 
-    <!-- Three.js CDN -->
+    <!-- In-Game UI / Crosshair -->
+    <div id="hud" class="hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; pointer-events: none; z-index: 5;">+</div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
     <script>
-        // 1. Scene, Camera, Renderer with High Graphics Settings
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000000);
-        scene.fog = new THREE.FogExp2(0x000000, 0.08);
+        // Game & Settings Variables
+        let gameStarted = false;
+        let mouseSensitivity = 1.0;
+        let audioEnabled = true;
 
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.2;
-        
-        renderer.domElement.style.position = 'fixed';
-        renderer.domElement.style.top = '0';
-        renderer.domElement.style.left = '0';
-        renderer.domElement.style.zIndex = '1';
-        document.body.appendChild(renderer.domElement);
-
-        // 2. Cinematic Lighting
-        const ambientLight = new THREE.AmbientLight(0x050505);
-        scene.add(ambientLight);
-
-        const flashlight = new THREE.SpotLight(0xfff8e7, 15, 30, Math.PI / 3, 0.5, 1.5);
-        flashlight.castShadow = true;
-        flashlight.shadow.bias = -0.002;
-        flashlight.shadow.mapSize.width = 1024;
-        flashlight.shadow.mapSize.height = 1024;
-        camera.add(flashlight);
-        flashlight.position.set(0, 0, 0);
-        flashlight.target.position.set(0, 0, -5);
-        camera.add(flashlight.target);
-        scene.add(camera);
-
-        // 3. Detailed Maze Environment with Rich Textures/Materials
-        const roomSize = 40;
-        const wallBoxes = [];
-
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4, metalness: 0.2 });
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), floorMat);
-        floor.rotation.x = -Math.PI / 2;
-        floor.receiveShadow = true;
-        scene.add(floor);
-
-        const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), floorMat);
-        ceiling.rotation.y = Math.PI;
-        ceiling.position.y = 5;
-        scene.add(ceiling);
-
-        const wallMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8, metalness: 0.1 });
-        const wallHalf = roomSize / 2;
-
-        function createWall(w, h, d, x, y, z) {
-            const geom = new THREE.BoxGeometry(w, h, d);
-            const mesh = new THREE.Mesh(geom, wallMat);
-            mesh.position.set(x, y, z);
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
-            scene.add(mesh);
-
-            geom.computeBoundingBox();
-            const box = new THREE.Box3();
-            box.setFromObject(mesh);
-            wallBoxes.push(box);
+        function openSettings() {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('settings-screen').classList.remove('hidden');
         }
 
-        // Outer Walls
-        createWall(roomSize, 5, 1, 0, 2.5, -wallHalf);
-        createWall(roomSize, 5, 1, 0, 2.5, wallHalf);
-        createWall(1, 5, roomSize, -wallHalf, 2.5, 0);
-        createWall(1, 5, roomSize, wallHalf, 2.5, 0);
-
-        // Inner Maze Dividers
-        createWall(18, 5, 1, -11, 2.5, -5);
-        createWall(1, 5, 14, -5, 2.5, 4);
-        createWall(16, 5, 1, 10, 2.5, 5);
-        createWall(1, 5, 12, 4, 2.5, -10);
-        createWall(14, 5, 1, -2, 2.5, 12);
-
-        camera.position.set(0, 1.6, 17);
-
-        // 4. Glowing Keys
-        const keys = [];
-        const keyPositions = [
-            { x: -16, z: -16 },
-            { x: 16, z: -14 },
-            { x: 0, z: 16 }
-        ];
-        const keyGeo = new THREE.SphereGeometry(0.35, 24, 24);
-        const keyMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xff6600, emissiveIntensity: 1.0, roughness: 0.2 });
-
-        keyPositions.forEach((pos) => {
-            const keyMesh = new THREE.Mesh(keyGeo, keyMat);
-            keyMesh.position.set(pos.x, 1, pos.z);
-            keyMesh.castShadow = true;
-            scene.add(keyMesh);
-            keys.push({ mesh: keyMesh, collected: false });
-        });
-
-        // 5. Ultra Monster Model (Creepy & High-Detail)
-        const monsterGroup = new THREE.Group();
-        const monsterMat = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 0.5, metalness: 0.4 });
-        
-        const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 3.0, 0.5), monsterMat);
-        torso.position.y = 1.7;
-        torso.castShadow = true;
-        monsterGroup.add(torso);
-
-        const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.7, 0.6), monsterMat);
-        head.position.y = 3.3;
-        head.castShadow = true;
-        monsterGroup.add(head);
-
-        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 16), eyeMat); leftEye.position.set(-0.16, 3.4, -0.3);
-        const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 16), eyeMat); rightEye.position.set(0.16, 3.4, -0.3);
-        monsterGroup.add(leftEye); monsterGroup.add(rightEye);
-
-        monsterGroup.position.set(0, 0, -16);
-        scene.add(monsterGroup);
-
-        // 6. Touch & Camera Controls
-        let isSwiping = false;
-        let prevTouchX = 0, prevTouchY = 0;
-        let cameraRotationY = 0, cameraRotationX = 0;
-
-        window.addEventListener('touchstart', (e) => {
-            for (let t of e.touches) {
-                if (t.clientX > window.innerWidth / 2) {
-                    isSwiping = true;
-                    prevTouchX = t.clientX;
-                    prevTouchY = t.clientY;
-                }
-            }
-        });
-
-        window.addEventListener('touchmove', (e) => {
-            if (!isSwiping) return;
-            for (let t of e.touches) {
-                if (t.clientX > window.innerWidth / 2) {
-                    const deltaX = t.clientX - prevTouchX;
-                    const deltaY = t.clientY - prevTouchY;
-
-                    cameraRotationY -= deltaX * 0.005;
-                    cameraRotationX -= deltaY * 0.005;
-                    cameraRotationX = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, cameraRotationX));
-
-                    camera.rotation.order = 'YXZ';
-                    camera.rotation.y = cameraRotationY;
-                    camera.rotation.x = cameraRotationX;
-
-                    prevTouchX = t.clientX;
-                    prevTouchY = t.clientY;
-                }
-            }
-        });
-
-        window.addEventListener('touchend', () => { isSwiping = false; });
-
-        // 7. Joystick Controls
-        const joystickBase = document.getElementById('joystick-base');
-        const joystickStick = document.getElementById('joystick-stick');
-        let moveVector = { x: 0, y: 0 };
-        let isRunning = false;
-        let joystickTouchId = null;
-
-        const runBtn = document.getElementById('run-btn');
-        runBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isRunning = true; runBtn.style.background = 'rgba(255, 165, 0, 0.6)'; });
-        runBtn.addEventListener('touchend', (e) => { e.preventDefault(); isRunning = false; runBtn.style.background = 'rgba(255, 165, 0, 0.25)'; });
-
-        joystickBase.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            const touch = e.changedTouches[0];
-            joystickTouchId = touch.identifier;
-        });
-
-        window.addEventListener('touchmove', (e) => {
-            if (joystickTouchId === null) return;
-            let touch = null;
-            for (let t of e.touches) {
-                if (t.identifier === joystickTouchId) {
-                    touch = t;
-                    break;
-                }
-            }
-            if (!touch) return;
-
-            const rect = joystickBase.getBoundingClientRect();
-            const baseCenterX = rect.left + rect.width / 2;
-            const baseCenterY = rect.top + rect.height / 2;
-
-            let deltaX = touch.clientX - baseCenterX;
-            let deltaY = touch.clientY - baseCenterY;
-            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-            const maxRadius = 40;
-
-            if (distance > maxRadius) {
-                deltaX = (deltaX / distance) * maxRadius;
-                deltaY = (deltaY / distance) * maxRadius;
-            }
-
-            joystickStick.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-            moveVector.x = deltaX / maxRadius;
-            moveVector.y = deltaY / maxRadius;
-        });
-
-        window.addEventListener('touchend', (e) => {
-            for (let t of e.changedTouches) {
-                if (t.identifier === joystickTouchId) {
-                    joystickTouchId = null;
-                    joystickStick.style.transform = `translate(0px, 0px)`;
-                    moveVector.x = 0;
-                    moveVector.y = 0;
-                }
-            }
-        });
-
-        // 8. Key Collection Logic
-        let keysFound = 0;
-        let currentNearbyKey = null;
-        const pickBtn = document.getElementById('pick-btn');
-        let gameOver = false;
-
-        pickBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (currentNearbyKey && !currentNearbyKey.collected) {
-                currentNearbyKey.collected = true;
-                scene.remove(currentNearbyKey.mesh);
-                keysFound++;
-                document.getElementById('ui').innerText = `Keys Found: ${keysFound} / 3`;
-                pickBtn.style.display = 'none';
-                
-                if(keysFound === 3) {
-                    document.getElementById('ui').innerText = "YOU ESCAPED! 🎉";
-                    gameOver = true;
-                    document.getElementById('restart-btn').style.display = 'block';
-                }
-            }
-        });
-
-        // 9. Main Loop
-        const playerRadius = 0.4;
-
-        function animate() {
-            requestAnimationFrame(animate);
-            if (gameOver) return;
-
-            if (moveVector.y !== 0 || moveVector.x !== 0) {
-                const direction = new THREE.Vector3();
-                camera.getWorldDirection(direction);
-                direction.y = 0;
-                direction.normalize();
-
-                const sideDirection = new THREE.Vector3(-direction.z, 0, direction.x);
-                const speed = isRunning ? 0.13 : 0.065;
-
-                const potentialPosition = camera.position.clone();
-                potentialPosition.addScaledVector(direction, -moveVector.y * speed);
-                potentialPosition.addScaledVector(sideDirection, moveVector.x * speed);
-
-                const playerBox = new THREE.Box3(
-                    new THREE.Vector3(potentialPosition.x - playerRadius, 0, potentialPosition.z - playerRadius),
-                    new THREE.Vector3(potentialPosition.x + playerRadius, 3, potentialPosition.z + playerRadius)
-                );
-
-                let collision = false;
-                for (let box of wallBoxes) {
-                    if (box.intersectsBox(playerBox)) {
-                        collision = true;
-                        break;
-                    }
-                }
-
-                if (!collision) {
-                    camera.position.copy(potentialPosition);
-                }
-            }
-
-            const monsterSpeed = 0.033 + (keysFound * 0.004);
-            monsterGroup.lookAt(monsterGroup.position.x, monsterGroup.position.y, camera.position.x);
-            monsterGroup.position.lerp(new THREE.Vector3(camera.position.x, 0, camera.position.z), monsterSpeed);
-
-            if (monsterGroup.position.distanceTo(camera.position) < 1.8) {
-                document.getElementById('ui').innerText = "CAUGHT BY THE ENTITY! 💀 GAME OVER";
-                document.getElementById('ui').style.color = "red";
-                gameOver = true;
-                document.getElementById('restart-btn').style.display = 'block';
-            }
-
-            currentNearbyKey = null;
-            keys.forEach(k => {
-                if (!k.collected) {
-                    const distance = camera.position.distanceTo(k.mesh.position);
-                    if (distance < 2.5) currentNearbyKey = k;
-                }
-            });
-
-            pickBtn.style.display = currentNearbyKey ? 'block' : 'none';
-
-            renderer.render(scene, camera);
+        function closeSettings() {
+            document.getElementById('settings-screen').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
         }
-        animate();
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        function updateSensitivity(val) {
+            mouseSensitivity = parseFloat(val);
+            document.getElementById('sens-val').innerText = val;
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            document.getElementById('audio-btn').innerText = audioEnabled ? "Audio: ON" : "Audio: OFF";
+        }
+
+        function startGame() {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            gameStarted = true;
+            // Pointer lock enable kar sakte hain yahan
+        }
     </script>
 </body>
 </html>
