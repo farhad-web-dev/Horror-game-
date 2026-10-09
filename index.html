@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Horror Maze</title>
+    <title>The Last Corridor - 3D Horror Maze</title>
     <style>
         body, html {
             margin: 0;
@@ -21,14 +21,13 @@
             top: 0;
             left: 0;
         }
-        /* UI Screens Overlay */
         .ui-screen {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(0, 0, 0, 0.9);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -39,12 +38,13 @@
         .ui-screen h1 {
             font-size: 3rem;
             color: #ff3333;
-            text-shadow: 0 0 10px #ff0000;
+            text-shadow: 0 0 15px #ff0000;
             margin-bottom: 20px;
             letter-spacing: 3px;
+            text-align: center;
         }
         .btn {
-            background: #222;
+            background: #111;
             color: #fff;
             border: 2px solid #ff3333;
             padding: 12px 30px;
@@ -53,14 +53,14 @@
             margin: 10px;
             transition: 0.3s;
             border-radius: 5px;
+            font-family: 'Courier New', Courier, monospace;
         }
         .btn:hover {
             background: #ff3333;
-            box-shadow: 0 0 15px #ff0000;
+            box-shadow: 0 0 20px #ff0000;
         }
-        /* Settings Panel */
         .settings-panel {
-            display: none;
+            display: flex;
             flex-direction: column;
             align-items: center;
             background: rgba(20, 20, 20, 0.95);
@@ -74,11 +74,22 @@
         }
         .setting-item label {
             display: block;
-            margin-bottom: 5px;
-            font-size: 1rem;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+            color: #ccc;
         }
         .hidden {
             display: none !important;
+        }
+        #hud {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 24px;
+            pointer-events: none;
+            z-index: 5;
         }
     </style>
 </head>
@@ -86,19 +97,19 @@
 
     <div id="canvas-container"></div>
 
-    <!-- MAIN MENU SCREEN -->
+    <!-- MAIN MENU -->
     <div id="main-menu" class="ui-screen">
         <h1>THE LAST CORRIDOR</h1>
         <button class="btn" onclick="startGame()">PLAY GAME</button>
         <button class="btn" onclick="openSettings()">SETTINGS</button>
     </div>
 
-    <!-- SETTINGS SCREEN -->
+    <!-- SETTINGS -->
     <div id="settings-screen" class="ui-screen hidden">
         <h1>SETTINGS</h1>
         <div class="settings-panel">
             <div class="setting-item">
-                <label>Mouse Sensitivity: <span id="sens-val">1.0</span></label>
+                <label>Sensitivity: <span id="sens-val">1.0</span></label>
                 <input type="range" id="sensitivity-slider" min="0.2" max="3.0" step="0.1" value="1.0" oninput="updateSensitivity(this.value)">
             </div>
             <div class="setting-item">
@@ -109,42 +120,11 @@
         </div>
     </div>
 
-    <!-- In-Game UI / Crosshair -->
-    <div id="hud" class="hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; pointer-events: none; z-index: 5;">+</div>
+    <div id="hud" class="hidden">+</div>
 
+    <!-- Three.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script>
-        // Game & Settings Variables
-        let gameStarted = false;
-        let mouseSensitivity = 1.0;
-        let audioEnabled = true;
-
-        function openSettings() {
-            document.getElementById('main-menu').classList.add('hidden');
-            document.getElementById('settings-screen').classList.remove('hidden');
-        }
-
-        function closeSettings() {
-            document.getElementById('settings-screen').classList.add('hidden');
-            document.getElementById('main-menu').classList.remove('hidden');
-        }
-
-        function updateSensitivity(val) {
-            mouseSensitivity = parseFloat(val);
-            document.getElementById('sens-val').innerText = val;
-        }
-
-        function toggleAudio() {
-            audioEnabled = !audioEnabled;
-            document.getElementById('audio-btn').innerText = audioEnabled ? "Audio: ON" : "Audio: OFF";
-        }
-
-        function startGame() {
-            document.getElementById('main-menu').classList.add('hidden');
-            document.getElementById('hud').classList.remove('hidden');
-            gameStarted = true;
-            // Pointer lock enable kar sakte hain yahan
-        }
-    </script>
+    <!-- Game Logic File -->
+    <script src="game.js"></script>
 </body>
 </html>
