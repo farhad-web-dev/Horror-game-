@@ -34,6 +34,7 @@ function startGame() {
     document.getElementById('main-menu').classList.add('hidden');
     document.getElementById('hud').classList.remove('hidden');
     gameStarted = true;
+    prevTime = performance.now(); // Fix: Reset time right when game starts to prevent huge delta jumps
     initThreeJS();
 }
 
