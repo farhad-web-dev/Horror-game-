@@ -34,7 +34,7 @@ function startGame() {
     document.getElementById('main-menu').classList.add('hidden');
     document.getElementById('hud').classList.remove('hidden');
     gameStarted = true;
-    prevTime = performance.now(); // Fix: Reset time right when game starts to prevent huge delta jumps
+    prevTime = performance.now();
     initThreeJS();
 }
 
@@ -91,6 +91,7 @@ function initThreeJS() {
 }
 
 function setupControls() {
+    // Keyboard Controls (PC / External Keyboard)
     document.addEventListener('keydown', (e) => {
         if (!gameStarted) return;
         if (e.code === 'KeyW' || e.code === 'ArrowUp') moveForward = true;
@@ -107,21 +108,40 @@ function setupControls() {
         if (e.code === 'KeyD' || e.code === 'ArrowRight') moveRight = false;
     });
 
+    // Mouse & Touch Controls for Looking Around
     let isDragging = false;
     let previousMousePosition = { x: 0, y: 0 };
 
+    // Mouse Events
     document.addEventListener('mousedown', () => { isDragging = true; });
     document.addEventListener('mouseup', () => { isDragging = false; });
-
     document.addEventListener('mousemove', (e) => {
         if (!gameStarted || !isDragging) return;
         const deltaX = e.clientX - previousMousePosition.x;
         camera.rotation.y -= deltaX * 0.003 * mouseSensitivity;
-    });
-
-    window.addEventListener('mousemove', (e) => {
         previousMousePosition = { x: e.clientX, y: e.clientY };
     });
+    document.addEventListener('mousemove', (e) => {
+        previousMousePosition = { x: e.clientX, y: e.clientY };
+    });
+
+    // Touch Events for Mobile Browsers
+    document.addEventListener('touchstart', (e) => {
+        if (!gameStarted) return;
+        if (e.touches.length > 0) {
+            isDragging = true;
+            previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+    });
+
+    document.addEventListener('touchend', () => { isDragging = false; });
+
+    document.addEventListener('touchmove', (e) => {
+        if (!gameStarted || !isDragging || e.touches.length === 0) return;
+        const deltaX = e.touches[0].clientX - previousMousePosition.x;
+        camera.rotation.y -= deltaX * 0.003 * mouseSensitivity;
+        previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }, { passive: true });
 }
 
 function onWindowResize() {
